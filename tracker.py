@@ -30,8 +30,7 @@ def main():
 
         # Ensure there are no NaN values in the 'Date' column
         df = df.dropna(subset=['Date'])
-        start_date = df['Date'].min()
-        end_date = datetime.datetime.today().strftime('%Y-%m-%d')  # Define end_date here
+        end_date = datetime.datetime.today().strftime('%Y-%m-%d')
 
         # Define major stock indexes
         indexes = {
@@ -43,7 +42,8 @@ def main():
         # Fetch stock data and calculate percent change
         stock_data = {}
         for index, row in df.iterrows():
-            data = fetch_data(row['Symbol'], start_date, end_date)
+            stock_start_date = row['Date']
+            data = fetch_data(row['Symbol'], stock_start_date, end_date)
             data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
             stock_data[row['Symbol']] = data
 
