@@ -6,7 +6,7 @@ import datetime
 import matplotlib.pyplot as plt
 
 # Cache the data fetching function to avoid redundant calls
-@st.cache
+@st.cache_data
 def fetch_data(ticker, start_date, end_date):
     data = yf.download(ticker, start=start_date, end=end_date)
     return data['Close']
@@ -62,6 +62,7 @@ def main():
                 data = fetch_data(row['Symbol'], stock_start_date, stock_end_date)
                 data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
                 avg_stock_data[row['Symbol']] = data
+                ax.plot(data.index, data, label=row['Symbol'])  # Plot individual stock
 
             # Calculate average percent change for the group of stocks
             avg_stock_data['Average'] = avg_stock_data.mean(axis=1)
@@ -76,8 +77,8 @@ def main():
 
             performance_table[score] = differences.values()
 
-        # Display the performance table with color-coded values
-        st.table(performance_table.style.applymap(lambda x: 'color: green' if x > 0 else 'color: red'))
+        # Format the table values as percentages with one decimal place and display with color-coded values
+        st.table(performance_table.style.format("{:.1f}%").applymap(lambda x: 'color: green' if x > 0 else 'color: red'))
 
         ax.set_title("Stock Performance vs Indexes")
         ax.set_xlabel("Date")
