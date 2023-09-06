@@ -31,6 +31,7 @@ def main():
         # Ensure there are no NaN values in the 'Date' column
         df = df.dropna(subset=['Date'])
         start_date = df['Date'].min()
+        end_date = datetime.datetime.today().strftime('%Y-%m-%d')  # Define end_date here
 
         # Define major stock indexes
         indexes = {
