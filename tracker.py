@@ -31,7 +31,6 @@ def main():
         # Ensure there are no NaN values in the 'Purchase Date' column
         df = df.dropna(subset=['Purchase Date'])
         end_date = datetime.datetime.today().strftime('%Y-%m-%d')
-        start_date = df['Purchase Date'].min()  # Define the start_date for fetching index data
 
         # Define major stock indexes
         indexes = {
@@ -40,38 +39,32 @@ def main():
             'NASDAQ': '^IXIC'
         }
 
-        # Fetch stock data and calculate percent change
-        stock_data = {}
-        for index, row in df.iterrows():
-            stock_start_date = row['Purchase Date']
-            stock_end_date = row['Sell Date'] if not pd.isnull(row['Sell Date']) else end_date
-            data = fetch_data(row['Symbol'], stock_start_date, stock_end_date)
-            data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
-            stock_data[row['Symbol']] = data
-
-        # Fetch index data and calculate percent change
-        index_data = {}
-        for name, ticker in indexes.items():
-            data = fetch_data(ticker, start_date, end_date)
-            data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
-            index_data[name] = data
-
-        # Plotting
-        fig, ax = plt.subplots(figsize=(10, 6))
-        
-        # Group stocks by score and plot
+        # Group stocks by score
         grouped_stocks = df.groupby('Score')
+
+        # Plot average percent change for stocks grouped by score alongside indexes
+        fig, ax = plt.subplots(figsize=(10, 6))
         for score, group in grouped_stocks:
-            if st.checkbox(f"Show stocks with score {score}?"):
+            if st.checkbox(f"Show average performance for stocks with score {score}?"):
+                avg_stock_data = pd.DataFrame()
                 for index, row in group.iterrows():
-                    ax.plot(stock_data[row['Symbol']].index, stock_data[row['Symbol']], label=row['Symbol'])
+                    stock_start_date = row['Purchase Date']
+                    stock_end_date = row['Sell Date'] if not pd.isnull(row['Sell Date']) else end_date
+                    data = fetch_data(row['Symbol'], stock_start_date, stock_end_date)
+                    data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
+                    avg_stock_data[row['Symbol']] = data
 
-        # Plot indexes
-        for name, data in index_data.items():
-            if st.checkbox(f"Show {name} index?"):
-                ax.plot(data.index, data, label=name, linestyle='--')
+                # Calculate average percent change for the group of stocks
+                avg_stock_data['Average'] = avg_stock_data.mean(axis=1)
+                ax.plot(avg_stock_data.index, avg_stock_data['Average'], label=f"Score {score}")
 
-        ax.set_title("Stock Performance Over Time (Cumulative Percent Change)")
+                # Calculate and plot average percent change for indexes over the same time periods
+                for name, ticker in indexes.items():
+                    index_data = fetch_data(ticker, avg_stock_data.index.min(), avg_stock_data.index.max())
+                    index_data = (index_data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
+                    ax.plot(index_data.index, index_data, label=name, linestyle='--')
+
+        ax.set_title("Average Stock Performance vs Indexes")
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative Return")
         ax.legend()
