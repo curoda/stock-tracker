@@ -39,33 +39,38 @@ def main():
             'NASDAQ': '^IXIC'
         }
 
-        # Fetch stock data
-        end_date = datetime.datetime.today().strftime('%Y-%m-%d')
-        
+        # Fetch stock data and calculate percent change
         stock_data = {}
         for index, row in df.iterrows():
-            stock_data[row['Symbol']] = fetch_data(row['Symbol'], start_date, end_date)
+            data = fetch_data(row['Symbol'], start_date, end_date)
+            data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
+            stock_data[row['Symbol']] = data
 
+        # Fetch index data and calculate percent change
         index_data = {}
         for name, ticker in indexes.items():
-            index_data[name] = fetch_data(ticker, start_date, end_date)
+            data = fetch_data(ticker, start_date, end_date)
+            data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
+            index_data[name] = data
 
         # Plotting
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        # Plot stocks
-        for symbol, data in stock_data.items():
-            if st.checkbox(f"Show {symbol} with score {df[df['Symbol'] == symbol]['Score'].values[0]}?"):
-                ax.plot(data.index, data, label=symbol)
+        # Group stocks by score and plot
+        grouped_stocks = df.groupby('Score')
+        for score, group in grouped_stocks:
+            if st.checkbox(f"Show stocks with score {score}?"):
+                for index, row in group.iterrows():
+                    ax.plot(stock_data[row['Symbol']].index, stock_data[row['Symbol']], label=row['Symbol'])
 
         # Plot indexes
         for name, data in index_data.items():
             if st.checkbox(f"Show {name} index?"):
                 ax.plot(data.index, data, label=name, linestyle='--')
 
-        ax.set_title("Stock Performance Over Time")
+        ax.set_title("Stock Performance Over Time (Cumulative Percent Change)")
         ax.set_xlabel("Date")
-        ax.set_ylabel("Price")
+        ax.set_ylabel("Cumulative Return")
         ax.legend()
         st.pyplot(fig)
 
