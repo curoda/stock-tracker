@@ -44,6 +44,13 @@ def main():
 
         # Plot average percent change for stocks grouped by score alongside indexes
         fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Plot index data
+        for name, ticker in indexes.items():
+            index_data = fetch_data(ticker, df['Purchase Date'].min(), end_date)
+            index_data = (index_data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
+            ax.plot(index_data.index, index_data, label=name, linestyle='--')
+
         for score, group in grouped_stocks:
             if st.checkbox(f"Show performance for stocks with score {score}?"):
                 avg_stock_data = pd.DataFrame()
