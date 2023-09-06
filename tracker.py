@@ -6,7 +6,7 @@ import datetime
 import matplotlib.pyplot as plt
 
 # Cache the data fetching function to avoid redundant calls
-@st.cache
+@st.cache_data
 def fetch_data(ticker, start_date, end_date):
     data = yf.download(ticker, start=start_date, end=end_date)
     return data['Close']
