@@ -15,11 +15,22 @@ def fetch_data(ticker, start_date, end_date):
 def main():
     st.title("Stock Performance Tracker")
 
-    uploaded_file = st.file_uploader("Upload a spreadsheet with stock symbols, trade date, and score", type=["xlsx", "xls", "csv"])
-    
+    uploaded_file = st.file_uploader("Upload a spreadsheet with stock symbols, trade date, and score", type=["csv", "xlsx"])
+
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file, parse_dates=['Date'])
+        elif uploaded_file.name.endswith('.xlsx') or uploaded_file.name.endswith('.xls'):
+            df = pd.read_excel(uploaded_file, parse_dates=['Date'])
+        else:
+            st.error("Unsupported file type. Please upload a .csv or .xlsx file.")
+            return
+
         st.write(df)
+
+        # Ensure there are no NaN values in the 'Date' column
+        df = df.dropna(subset=['Date'])
+        start_date = df['Date'].min()
 
         # Define major stock indexes
         indexes = {
@@ -29,7 +40,6 @@ def main():
         }
 
         # Fetch stock data
-        start_date = df['Date'].min()
         end_date = datetime.datetime.today().strftime('%Y-%m-%d')
         
         stock_data = {}
