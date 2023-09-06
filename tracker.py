@@ -6,7 +6,7 @@ import datetime
 import matplotlib.pyplot as plt
 
 # Cache the data fetching function to avoid redundant calls
-@st.cache_data
+@st.cache
 def fetch_data(ticker, start_date, end_date):
     data = yf.download(ticker, start=start_date, end=end_date)
     return data['Close']
@@ -15,23 +15,23 @@ def fetch_data(ticker, start_date, end_date):
 def main():
     st.title("Stock Performance Tracker")
 
-    uploaded_file = st.file_uploader("Upload a spreadsheet with stock symbols, trade date, and score", type=["csv", "xlsx"])
+    uploaded_file = st.file_uploader("Upload a spreadsheet with stock symbols, purchase date, sell date, and score", type=["csv", "xlsx"])
 
     if uploaded_file:
         if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file, parse_dates=['Date'])
+            df = pd.read_csv(uploaded_file, parse_dates=['Purchase Date', 'Sell Date'])
         elif uploaded_file.name.endswith('.xlsx') or uploaded_file.name.endswith('.xls'):
-            df = pd.read_excel(uploaded_file, parse_dates=['Date'])
+            df = pd.read_excel(uploaded_file, parse_dates=['Purchase Date', 'Sell Date'])
         else:
             st.error("Unsupported file type. Please upload a .csv or .xlsx file.")
             return
 
         st.write(df)
 
-        # Ensure there are no NaN values in the 'Date' column
-        df = df.dropna(subset=['Date'])
+        # Ensure there are no NaN values in the 'Purchase Date' column
+        df = df.dropna(subset=['Purchase Date'])
         end_date = datetime.datetime.today().strftime('%Y-%m-%d')
-        start_date = df['Date'].min()  # Define the start_date for fetching index data
+        start_date = df['Purchase Date'].min()  # Define the start_date for fetching index data
 
         # Define major stock indexes
         indexes = {
@@ -43,8 +43,9 @@ def main():
         # Fetch stock data and calculate percent change
         stock_data = {}
         for index, row in df.iterrows():
-            stock_start_date = row['Date']
-            data = fetch_data(row['Symbol'], stock_start_date, end_date)
+            stock_start_date = row['Purchase Date']
+            stock_end_date = row['Sell Date'] if not pd.isnull(row['Sell Date']) else end_date
+            data = fetch_data(row['Symbol'], stock_start_date, stock_end_date)
             data = (data.pct_change() + 1).cumprod() - 1  # Convert to cumulative return
             stock_data[row['Symbol']] = data
 
